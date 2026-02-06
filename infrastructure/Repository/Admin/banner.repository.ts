@@ -180,6 +180,9 @@ class BannerRepository implements BannerDomainRepository {
 
             const banner = new BannerModel();
             banner.name = BannerInput.name;
+            banner.heading = BannerInput.heading;
+            banner.subheading = BannerInput.subheading;
+            banner.buttonName = BannerInput.buttonName;
             banner.images = imageArr;
             banner.createdBy = new Types.ObjectId(userId);
             banner.modifiedBy = new Types.ObjectId(userId);
@@ -238,11 +241,13 @@ class BannerRepository implements BannerDomainRepository {
                     imageArr.push(imagesData);
                 }
             }
-            const banner: any = {};
-            banner.images = imageArr ?? bannerData.images;
-            banner.name = BannerInput.name;
-            banner.modifiedBy = new Types.ObjectId(userId);
-            const result = await BannerModel.findByIdAndUpdate({ _id: BannerInput.id }, banner);
+            bannerData.images = imageArr ?? bannerData.images;
+            bannerData.name = BannerInput.name;
+            bannerData.heading = BannerInput.heading;
+            bannerData.subheading = BannerInput.subheading;
+            bannerData.buttonName = BannerInput.buttonName;
+            bannerData.modifiedBy = new Types.ObjectId(userId);
+            const result = await BannerModel.findByIdAndUpdate({ _id: BannerInput.id }, bannerData);
             if (!result) {
                 return createErrorResponse(
                     'Error creating Banner',

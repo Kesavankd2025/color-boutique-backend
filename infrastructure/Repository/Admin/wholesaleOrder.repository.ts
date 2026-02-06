@@ -2676,14 +2676,14 @@ export class WholesaleOrderRepository implements IWholesaleOrderRepository {
       let customerTotalTax = 0;
 
       // Process each order item separately with individual lookups
-      const products = await Promise.all(
+      const products: any = await Promise.all(
         order.items.map(async (item: any) => {
           try {
             const productId = item.productId.toString();
             console.log("Processing product ID:", productId);
 
             // Get the product with basic details
-            const product = await ProductModel.findOne({
+            const product: any = await ProductModel.findOne({
               _id: new Types.ObjectId(productId),
               isActive: 1,
               isDelete: 0
@@ -2699,8 +2699,8 @@ export class WholesaleOrderRepository implements IWholesaleOrderRepository {
             console.log("Customer rowData:", product.customerAttribute?.rowData);
 
             // Convert attribute IDs to ObjectIds
-            const customerAttributeIds = product.customerAttribute?.attributeId?.map(id => new Types.ObjectId(id)) || [];
-            const wholesalerAttributeIds = product.wholesalerAttribute?.attributeId?.map(id => new Types.ObjectId(id)) || [];
+            const customerAttributeIds = product.customerAttribute?.attributeId?.map((id: any) => new Types.ObjectId(id)) || [];
+            const wholesalerAttributeIds = product.wholesalerAttribute?.attributeId?.map((id: any) => new Types.ObjectId(id)) || [];
 
             // Get all related data using separate queries
             const [
@@ -2716,7 +2716,7 @@ export class WholesaleOrderRepository implements IWholesaleOrderRepository {
               Brand.findById(product.brand).select('name').lean(),
               Category.findById(product.categoryId).select('name').lean(),
               subcategory.findById(product.subCategory).select('name').lean(),
-              childCategory.findById(product.childCategory).select('name').lean(),
+              childCategory.findById(product?.childCategory).select('name').lean(),
               wholesalerAttributeIds.length > 0 ?
                 Attribute.find({ _id: { $in: wholesalerAttributeIds } }).lean() :
                 Promise.resolve([]),

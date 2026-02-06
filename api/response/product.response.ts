@@ -3,7 +3,7 @@ export interface ProductDocument {
   productCode: string;
   categoryId: string;
   subCategory: string;
-  childCategory: string;
+  childCategory?: string;
   productName: string;
   hsn: string;
   brand: string;
@@ -37,7 +37,7 @@ export interface ProductDocument {
   isIncentive: boolean,
   showToLineman: boolean,
 
-  wholesalerAttribute: {
+  wholesalerAttribute?: {
     attributeId: any[];
     rowData: any[];
   };
@@ -60,4 +60,7 @@ export interface ProductDocument {
 
   createdAt: Date;
   updatedAt: Date;
+
+  isTrending: boolean;
+  specifications: any[];
 }

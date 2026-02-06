@@ -3,6 +3,9 @@ import mongoose, { Schema } from "mongoose";
 const adminSchema = new Schema(
     {
         name: { type: String, required: true },
+        heading: { type: String, required: false }, // User asked for Heading, using name or this
+        subheading: { type: String, required: false },
+        buttonName: { type: String, required: false },
         images: [
             {
                 docName: { type: String },

@@ -136,6 +136,8 @@ class ProductRepository implements ProductDomainRepository {
 
   async update(id: string, product: UpdateProductInput, userId: string, productImg: any, productAddtionalImg: any): Promise<ApiResponse<SuccessMessage> | ErrorResponse> {
     try {
+      console.log(product, "product");
+
       const findProduct = await ProductModel.findById({
         _id: new Types.ObjectId(id), isActive: true, isDelete: false
       })
@@ -326,13 +328,15 @@ class ProductRepository implements ProductDomainRepository {
         );
       }
 
-      const rawData = product
-      const responseData: ProductDocument = {
+      const rawData: any = product;
+      console.log(`Product ID: ${rawData._id}, Specifications:`, rawData.specifications);
+      console.log(rawData, "ooo")
+      const responseData: any = {
         _id: rawData._id.toString(),
         productCode: rawData.productCode ?? "",
         categoryId: rawData.categoryId.toString(),
         subCategory: rawData.subCategory.toString(),
-        childCategory: rawData.childCategory.toString(),
+        childCategory: rawData?.childCategory?.toString(),
         productName: rawData.productName,
         hsn: rawData.hsn,
         brand: rawData.brand.toString(),
@@ -355,7 +359,7 @@ class ProductRepository implements ProductDomainRepository {
         packingType: rawData.packingType ?? "",
         isIncentive: rawData.isIncentive ?? false,
         showToLineman: rawData.showToLineman ?? false,
-        wholesalerAttribute: rawData.wholesalerAttribute ?? { attributeId: [], rowData: [] },
+        // wholesalerAttribute: rawData.wholesalerAttribute ?? { attributeId: [], rowData: [] },
         customerAttribute: rawData.customerAttribute ?? { attributeId: [], rowData: [] },
         metaTitle: rawData.metaTitle ?? "",
         metaKeyword: rawData.metaKeyword ?? "",
@@ -367,8 +371,12 @@ class ProductRepository implements ProductDomainRepository {
         modifiedBy: rawData.modifiedBy?.toString() || "",
         isActive: rawData.isActive,
         isDelete: rawData.isDelete,
+        // isDelete: rawData.isDelete,
         createdAt: rawData.createdAt,
-        updatedAt: rawData.updatedAt
+        updatedAt: rawData.updatedAt,
+        isTrending: rawData.isTrending ?? false,
+        specifications: rawData.specifications || [],
+        // taxId: rawData.taxId?.toString() ?? "" 
       };
 
 
@@ -523,7 +531,6 @@ class ProductRepository implements ProductDomainRepository {
             applicableForCustomer: 1,
             customerDiscount: 1,
             customerTax: 1,
-            wholesalerAttribute: 1,
             customerAttribute: 1,
             metaTitle: 1,
             metaKeyword: 1,
@@ -535,9 +542,10 @@ class ProductRepository implements ProductDomainRepository {
             subCategoryName: { $arrayElemAt: ['$subCategoryDetails.name', 0] },
             childCategoryName: { $arrayElemAt: ['$childCategoryDetails.name', 0] },
             brandName: { $arrayElemAt: ['$brandDtls.name', 0] },
-            wholesalerAttributeDetails: 1,
             customerAttributeDetails: 1,
-            offerType: { $ifNull: [{ $arrayElemAt: ['$offers.offerType', 0] }, 'no'] }
+            offerType: { $ifNull: [{ $arrayElemAt: ['$offers.offerType', 0] }, 'no'] },
+            isTrending: 1,
+            specifications: 1
           },
         },
       ];
@@ -674,12 +682,11 @@ class ProductRepository implements ProductDomainRepository {
           result.push({
             ...product,
             lowStockQuantity: product.lowStockQuantity ?? 20,
-            wholesalerAttributeDetails: product.wholesalerAttributeDetails
-              ? processAttributeDetails(product.wholesalerAttributeDetails)
-              : [],
             customerAttributeDetails: product.customerAttributeDetails
               ? processAttributeDetails(product.customerAttributeDetails)
-              : []
+              : [],
+            isTrending: product.isTrending ?? false,
+            specifications: product.specifications ?? []
           });
         }
 

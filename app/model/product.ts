@@ -4,13 +4,14 @@ const productSchema = new Schema({
   productCode: { type: String, required: true },
   categoryId: { type: Schema.Types.ObjectId, ref: "categorys", required: true },
   subCategory: { type: Schema.Types.ObjectId, ref: "subcategories", required: true },
-  childCategory: { type: Schema.Types.ObjectId, ref: "childcategories", required: true },
+  // childCategory: { type: Schema.Types.ObjectId, ref: "childcategories", required: false, default: null },
+  taxId: { type: Schema.Types.ObjectId, ref: "Tax", required: false, default: null },
 
   productName: { type: String, required: true },
   brand: { type: Schema.Types.ObjectId, required: true, ref: "brands" },
   shortDescription: { type: String, default: "" },
   slug: { type: String, unique: true, required: true },
-  hsn: { type: String, default: "" ,required: true},
+  hsn: { type: String, default: "", required: true },
 
   productImage: [
     {
@@ -58,6 +59,9 @@ const productSchema = new Schema({
   metaTitle: { type: String, default: "" },
   metaKeyword: { type: String, default: "" },
   metaDesc: { type: String, default: "" },
+
+  specifications: [{ _id: false, key: { type: String }, value: { type: String } }],
+  isTrending: { type: Boolean, default: false },
 
   delivery: { type: String, default: "" },
 

@@ -1,17 +1,16 @@
 import { Router } from "express";
-import { BannerDomainRepository } from "../../../domain/admin/bannerDomain";
-import { newBannerService } from "../../../app/service/admin/banner.service";
-import { BannerHandlerFun } from "../../../app/handler/admin.handler/banners.handler";
+import { BannerDomainRepository } from "../../../domain/mobile-app/bannerDomain";
+import { newBannerService } from "../../../app/service/mobile-app/banner.service";
+import { BannerHandlerFun } from "../../../app/handler/mobile-app/banner.handler";
+
 export function RegisterBannerRoute(
     router: Router,
-    adminRepo: BannerDomainRepository,
+    repo: BannerDomainRepository,
     middleware: any
 ) {
-    const service = newBannerService(adminRepo); // Pass repository to service  
-    const handler = BannerHandlerFun(service); // Pass service to handler
-    router.post("/banner", middleware, handler.create); // Define route
-    router.patch("/banner/:id", middleware, handler.update); // Define route
-    router.delete("/banner/:id", middleware, handler.delete); // Define route
-    router.get("/banner/:id", middleware, handler.getBannerDetails); // Define route
-    router.get("/banner", handler.getBannerList); // Define route
+    const service = newBannerService(repo);
+    const handler = BannerHandlerFun(service);
+
+    // Website/Mobile only needs list
+    router.get("/banner", handler.getBannerList);
 }

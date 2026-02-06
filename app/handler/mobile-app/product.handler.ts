@@ -97,7 +97,7 @@ class ProductHandler {
 
       const { childCategoryId, offset, limit, search, sortBy, order, categoryId, subCategoryId, page,
         type, id, priceFromRange, priceToRange, orderId, userId, orderType,
-        ratingFrom, ratingTo } = queryResult.data;
+        ratingFrom, ratingTo, isTrending } = queryResult.data;
 
 
       const response = await this.productService.list({
@@ -120,7 +120,8 @@ class ProductHandler {
         orderType: orderType ?? "",
         childCategoryId: childCategoryId ?? '',
         ratingFrom,
-        ratingTo
+        ratingTo,
+        isTrending
       });
 
       return sendPaginationResponse(res, response);

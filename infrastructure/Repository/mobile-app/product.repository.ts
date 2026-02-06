@@ -460,13 +460,154 @@ class ProductRepository implements ProductDomainRepository {
 
     async getById(id: string): Promise<ApiResponse<ProductDocument> | ErrorResponse> {
         try {
-            const product = await ProductModel.findOne({
-                _id: new Types.ObjectId(id),
-                isActive: true,
-                isDelete: false
-            }).populate('createdBy', 'name').populate('modifiedBy', 'name');
+            const pipeline: any[] = [
+                {
+                    $match: {
+                        _id: new Types.ObjectId(id),
+                        isActive: true,
+                        isDelete: false
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'brands',
+                        localField: 'brand',
+                        foreignField: '_id',
+                        as: 'brandDtls'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'categoryId',
+                        foreignField: '_id',
+                        as: 'categoryIdDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'subcategories',
+                        localField: 'subCategory',
+                        foreignField: '_id',
+                        as: 'subCategoryDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'childcategories',
+                        localField: 'childCategory',
+                        foreignField: '_id',
+                        as: 'childCategoryDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'attributes',
+                        localField: 'customerAttribute.attributeId',
+                        foreignField: '_id',
+                        as: 'customerAttributeDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'vendors',
+                        localField: 'vendorId',
+                        foreignField: '_id',
+                        as: 'vendorDtls'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'reviews',
+                        localField: '_id',
+                        foreignField: 'productId',
+                        as: 'reviewRating',
+                        pipeline: [
+                            {
+                                $group: {
+                                    _id: '$productId',
+                                    totalRating: { $sum: '$rating' },
+                                    avgRating: { $avg: '$rating' },
+                                    count: { $sum: 1 }
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'offers',
+                        localField: '_id',
+                        foreignField: 'productId.id',
+                        as: 'offers'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$reviewRating',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $addFields: {
+                        totalRating: { $ifNull: ['$reviewRating.totalRating', 0] },
+                        averageRating: { $ifNull: ['$reviewRating.avgRating', 0] },
+                        totalReviews: { $ifNull: ['$reviewRating.count', 0] },
+                        offerType: { $ifNull: [{ $arrayElemAt: ['$offers.offerType', 0] }, 'no'] },
+                        offerId: { $ifNull: [{ $arrayElemAt: ['$offers._id', 0] }, null] },
+                        offerDiscount: { $ifNull: [{ $arrayElemAt: ['$offers.discountPercentage', 0] }, 0] }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        productCode: 1,
+                        isActive: 1,
+                        isDelete: 1,
+                        productName: 1,
+                        shortDescription: 1,
+                        productImage: 1,
+                        additionalImage: 1,
+                        lowStockAlert: 1,
+                        tagAndLabel: 1,
+                        refundable: 1,
+                        productStatus: 1,
+                        description: 1,
+                        applicableForWholesale: 1,
+                        wholesalerDiscount: 1,
+                        wholesalerTax: 1,
+                        applicableForCustomer: 1,
+                        customerDiscount: 1,
+                        customerTax: 1,
+                        customerAttribute: 1,
+                        metaTitle: 1,
+                        metaKeyword: 1,
+                        metaDesc: 1,
+                        delivery: 1,
+                        categoryName: { $arrayElemAt: ['$categoryIdDetails.name', 0] },
+                        subCategoryName: { $arrayElemAt: ['$subCategoryDetails.name', 0] },
+                        childCategoryName: { $arrayElemAt: ['$childCategoryDetails.name', 0] },
+                        brandName: { $arrayElemAt: ['$brandDtls.name', 0] },
+                        vendorName: { $arrayElemAt: ['$vendorDtls.name', 0] },
+                        customerAttributeDetails: 1,
+                        totalRating: 1,
+                        averageRating: 1,
+                        totalReviews: 1,
+                        offers: 1,
+                        specifications: 1,
+                        isTrending: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        offerType: 1,
+                        offerId: 1,
+                        offerDiscount: 1
+                    }
+                }
+            ];
 
-            if (!product) {
+            const products = await ProductModel.aggregate(pipeline);
+
+            if (!products || products.length === 0) {
                 return createErrorResponse(
                     'Product not found',
                     StatusCodes.NOT_FOUND,
@@ -474,30 +615,28 @@ class ProductRepository implements ProductDomainRepository {
                 );
             }
 
-            const rawData = product
-            const responseData: any = {
-                _id: rawData._id.toString(),
-                categoryId: rawData.categoryId.toString(),
-                subCategory: rawData.subCategory.toString(),
-                childCategory: rawData.childCategory.toString(),
-                productName: rawData.productName,
-                brand: rawData.brand,
-                shortDescription: rawData.shortDescription,
-                slug: rawData.slug,
-                productImage: rawData.productImage,
-                additionalImage: rawData.additionalImage ?? [],
-                lowStockAlert: rawData.lowStockAlert,
-                tagAndLabel: rawData.tagAndLabel,
-                refundable: rawData.refundable,
-                productStatus: rawData.productStatus,
-                description: rawData.description,
-                applicableForWholesale: rawData.applicableForWholesale,
-                createdBy: rawData.createdBy?.toString() || '',
-                modifiedBy: rawData.modifiedBy?.toString() || '',
-                isActive: rawData.isActive,
-                isDelete: rawData.isDelete,
-                createdAt: rawData.createdAt,
-                updatedAt: rawData.updatedAt
+            const element = products[0];
+
+            const rowDataCustomer = element?.customerAttribute?.rowData || [];
+            const attributeDetailsCustomer = element?.customerAttributeDetails || [];
+            const attributeIds = (element?.customerAttribute?.attributeId || []).map((id: any) => id.toString());
+
+            const customerAttributeDetails = ProductHelper.buildAttributeTree(
+                attributeDetailsCustomer,
+                rowDataCustomer,
+                attributeIds,
+                0,
+                undefined,
+                undefined,
+                undefined,
+                element.customerTax
+            );
+
+            const responseData = {
+                ...element,
+                customerAttributeDetails: customerAttributeDetails,
+                // Ensure specifications is always an array
+                specifications: element.specifications || []
             };
 
             return {
@@ -525,14 +664,22 @@ class ProductRepository implements ProductDomainRepository {
                 _id: new Types.ObjectId(user?.customerVariant)
             }) : undefined;
             const { childCategoryId, limit, categoryId, subCategoryId, sortBy, order, page, type, id, priceFromRange, priceToRange, orderId, userId, orderType,
-                ratingFrom, ratingTo
+                ratingFrom, ratingTo, isTrending
             } = params;
+            console.log(isTrending, "oooooooooooo");
+            console.log(typeof isTrending);
+            console.log(params, "ppppppp");
+
+
             pipeline.push({ $match: { isActive: true, isDelete: false } });
 
 
             // filter
             if (id) {
                 pipeline.push({ $match: { _id: new Types.ObjectId(id) } });
+            }
+            if (isTrending === 'true') {
+                pipeline.push({ $match: { isTrending: true } });
             }
             if (categoryId) {
                 const ids = categoryId.split(',').map((id) => new Types.ObjectId(id));
@@ -842,7 +989,9 @@ class ProductRepository implements ProductDomainRepository {
                         totalRating: 1,
                         averageRating: 1,
                         totalReviews: 1,
-                        offers: 1
+                        offers: 1,
+                        isTrending: 1,
+                        specifications: 1
                     }
                 })
             if (sortBy !== '') {
@@ -1020,7 +1169,7 @@ class ProductRepository implements ProductDomainRepository {
                     offers: element.offers,
                     offerType,
                     offerId,
-                    offerDiscount
+                    specifications: element.specifications ?? []
                 };
 
                 if (params.type == 'customer' || params.type == 'retailer') {

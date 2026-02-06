@@ -43,6 +43,10 @@ class ProductHandler {
           : [req.files.additionalImages]
         : [];
       const formFields: any = { ...req.body };
+      if (formFields.childCategory === "") {
+        formFields.childCategory = undefined;
+      }
+
       if (formFields.customerAttribute) {
         try {
           formFields.customerAttribute = JSON.parse(formFields.customerAttribute);
@@ -64,6 +68,19 @@ class ProductHandler {
             res,
             StatusCodes.BAD_REQUEST,
             'Invalid wholesalerAttribute JSON',
+            'INVALID_INPUT'
+          );
+        }
+      }
+
+      if (formFields.specifications) {
+        try {
+          formFields.specifications = JSON.parse(formFields.specifications);
+        } catch {
+          return sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid specifications JSON',
             'INVALID_INPUT'
           );
         }
@@ -139,6 +156,11 @@ class ProductHandler {
         : [];
 
       const formFields: any = { ...req.body };
+      console.log(formFields, "formFields");
+
+      if (formFields.childCategory === "") {
+        formFields.childCategory = undefined;
+      }
       if (formFields.customerAttribute) {
         try {
           formFields.customerAttribute = JSON.parse(formFields.customerAttribute);
@@ -151,6 +173,11 @@ class ProductHandler {
           );
         }
       }
+      if (formFields.isTrending === "") {
+        formFields.isTrending = undefined;
+      } else {
+        formFields.isTrending = JSON.parse(formFields.isTrending);
+      }
 
       if (formFields.wholesalerAttribute) {
         try {
@@ -160,6 +187,19 @@ class ProductHandler {
             res,
             StatusCodes.BAD_REQUEST,
             'Invalid wholesalerAttribute JSON',
+            'INVALID_INPUT'
+          );
+        }
+      }
+
+      if (formFields.specifications) {
+        try {
+          formFields.specifications = JSON.parse(formFields.specifications);
+        } catch {
+          return sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid specifications JSON',
             'INVALID_INPUT'
           );
         }

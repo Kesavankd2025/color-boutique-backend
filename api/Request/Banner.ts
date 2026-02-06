@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const BannerSchema = z.object({
     images: z.any(),
     name: z.string().optional().default(''),
+    heading: z.string().optional().default(''),
+    subheading: z.string().optional().default(''),
+    buttonName: z.string().optional().default(''),
     id: z.string().optional(),
     imageIds: z.string().optional(),
 });

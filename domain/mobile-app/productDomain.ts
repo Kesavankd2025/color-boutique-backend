@@ -25,6 +25,7 @@ export interface ProductListParams {
     childCategoryId: string;
     ratingFrom: string;
     ratingTo: string;
+    isTrending?: string;
 }
 
 export interface ProductDomainRepository {

@@ -3,7 +3,8 @@ import { z } from 'zod';
 export const createProductSchema = z.object({
   categoryId: z.string().min(1, "category is required"),
   subCategory: z.string().min(1, "subCategory is required"),
-  childCategory: z.string().min(1, "childCategory is required"),
+  childCategory: z.string().optional(),
+  taxId: z.string().optional(),
 
   productName: z.string().min(1),
   brand: z.string().min(1),
@@ -49,6 +50,11 @@ export const createProductSchema = z.object({
   metaTitle: z.string().optional(),
   metaKeyword: z.string().optional(),
   metaDesc: z.string().optional(),
+  specifications: z.array(z.object({
+    key: z.string(),
+    value: z.string()
+  })).optional(),
+  isTrending: z.coerce.boolean().optional(),
   delivery: z.string().optional(),
 });
 
@@ -93,6 +99,7 @@ export const mobileProductListQuerySchema = z.object({
   childCategoryId: z.string().optional(),
   ratingFrom: z.string().optional().default(''),
   ratingTo: z.string().optional().default(''),
+  isTrending: z.string().optional(),
 
 
 });

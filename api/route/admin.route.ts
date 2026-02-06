@@ -73,6 +73,8 @@ import { RegisterCrmOrderRoute } from "./admin/crm.route";
 import { CrmOrderRepository } from "../../infrastructure/Repository/Admin/crm.repository";
 import { newHoldOrderRepository } from "../../infrastructure/Repository/Admin/holdOrder.repository";
 import { RegisterHoldOrderRoute } from "./admin/hold.route";
+import { RegisterReportRoute } from "./admin/report.route";
+import { NewReportRepository } from "../../infrastructure/Repository/Admin/report.repository";
 
 export function setupRoutes(router: Router, db: any) {
 
@@ -147,6 +149,7 @@ export function setupRoutes(router: Router, db: any) {
   RegisterExpensetypeRoute(router, RegisterNewExpenseTypeReposiorty(db), adminmiddleware.ValidateUser)
   RegisterCrmOrderRoute(router, crmRepo, adminmiddleware.ValidateUser)
   RegisterHoldOrderRoute(router, holdOrder, adminmiddleware.ValidateUser)
+  RegisterReportRoute(router, NewReportRepository(db), adminmiddleware.ValidateUser)
 
 }
 

@@ -30,7 +30,7 @@ import { RegisterUseraddressRoute } from "./mobile-app/user.address.route";
 import { UserAddressRepository } from "../../infrastructure/Repository/mobile-app/user.address.repository";
 import { RegisterReviewRoute } from "./mobile-app/review.route";
 import { newReviewRepository } from "../../infrastructure/Repository/mobile-app/review.repository";
-import { NewBannerRepository } from "../../infrastructure/Repository/Admin/banner.repository";
+import { newBannerRepository } from "../../infrastructure/Repository/mobile-app/banner.repository";
 import { RegisterBannerRoute } from "./mobile-app/banner.route";
 import { RegisterWishtRoute } from "./mobile-app/wishlist.route";
 import { newWishlistRepository } from "../../infrastructure/Repository/mobile-app/wishlist.repository";
@@ -78,7 +78,7 @@ export function setupRoutes(router: Router, db: any) {
 
   // Review routes
   RegisterReviewRoute(router, newReviewRepository(db), adminmiddleware.ValidateUser);
-  RegisterBannerRoute(router, NewBannerRepository(db), adminmiddleware.ValidateUser)
+  RegisterBannerRoute(router, newBannerRepository(db), adminmiddleware.ValidateUser)
   RegisterWishtRoute(router, newWishlistRepository(db), adminmiddleware.ValidateUser);
   RegisterReturnOrderRoute(router, new ReturnOrderRepository(db), adminmiddleware.ValidateUser);
   RegisterWholesalerReturnOrderRoute(router, new ReturnOrderRepository(db), wholesalerMiddleware.ValidateUser)
