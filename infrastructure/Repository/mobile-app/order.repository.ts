@@ -12,13 +12,13 @@ import { createErrorResponse } from '../../../utils/common/errors';
 import { ProductModel } from '../../../app/model/product';
 import Attribute from '../../../app/model/attribute';
 import Category from '../../../app/model/category';
+import Subcategory from '../../../app/model/subcategory';
 import { ReviewModel } from '../../../app/model/review';
 import { CartModel } from '../../../app/model/cart';
 import { ProductHelper } from '../../../utils/utilsFunctions/product.helper';
 import { ProductDocument } from '../../../api/response/product.response';
 import Users from '../../../app/model/user';
 import WholesalerRetailsers from '../../../app/model/Wholesaler';
-import { WholeSalerCreditModel } from '../../../app/model/wholesaler.credit';
 import { RootModel } from '../../../app/model/root';
 import { RootDocumentResponse } from '../../../api/response/root.response';
 import { RootListParams } from '../../../domain/admin/root.Domain';
@@ -168,70 +168,12 @@ export class OrderRepository implements OrderDomainRepository {
 
             console.log(input, 'input from the user', invoiceId);
 
-            let creditManagement = []
-            let creditId = null
-            if (input.paymentMode == 'CREDIT') {
-                const findCreditTypeOrder = await OrderModel.find({
-                    paymentMode: "CREDIT",
-                    paymentStatus: { $ne: "paid" }
-                });
-
-                const totalPaidAmount = findCreditTypeOrder.reduce((total, order) => {
-                    const orderPaidTotal = (order.creditManagement || []).reduce((sum, credit) => {
-                        return sum + (Number(credit.paidAmount) || 0);
-                    }, 0);
-                    return total + orderPaidTotal;
-                }, 0);
-                const checkCreditLimit = await WholeSalerCreditModel.findOne({
-                    wholeSalerId: new Types.ObjectId(input.placedBy),
-                    isActive: true,
-                    isDelete: false
-                });
-
-                if (!checkCreditLimit) {
-                    return createErrorResponse(
-                        "credit limit is not found error",
-                        StatusCodes.NOT_FOUND,
-                        "Credit limit is not found"
-                    );
-                }
-
-                // if (Number(input.totalAmount) > Number(checkCreditLimit.creditLimit ?? 0)) {
-                //     return createErrorResponse(
-                //         "credit limit exceeded",
-                //         StatusCodes.BAD_REQUEST,
-                //         "Credit limit exceeded"
-                //     );
-                // }
-
-                // const creditLimit = Number(checkCreditLimit.creditLimit ?? 0);
-                // const inputPaidAmount = Number(input.paidAmount ?? 0);
-
-                // const remainingBalance = creditLimit - totalPaidAmount;
-
-                // if (inputPaidAmount > remainingBalance) {
-                //     return createErrorResponse(
-                //         "credit limit exceeded",
-                //         StatusCodes.BAD_REQUEST,
-                //         "Credit limit exceeded"
-                //     );
-                // }
-
-                const limit = {
-                    paidAmount: input.paidAmount,
-                    paidDateAndTime: new Date(),
-                    recivedUserId: null,
-                    paymentType: input.paymentType,
-                }
-                console.log(new Types.ObjectId(checkCreditLimit._id));
-
-                creditId = new Types.ObjectId(checkCreditLimit._id)
-                creditManagement.push(limit)
-            }
             // Save the new order
             const doc = new OrderModel({
-                ...input, orderCode, creditId, createdBy: userId, modifiedBy: userId, creditManagement: creditManagement,
-                invoiceId
+                ...input, orderCode, createdBy: userId, modifiedBy: userId,
+                invoiceId,
+                placedBy: new Types.ObjectId(userId),
+                placedByModel: 'User'
             });
             const result = await doc.save();
             if (!result) {
@@ -240,7 +182,7 @@ export class OrderRepository implements OrderDomainRepository {
             if (input.items) {
                 await this.stockUpdation(input?.items);
                 /* Remove cart details */
-                await CartModel.updateOne({ userId: new Types.ObjectId(input.placedBy), isDelete: 0 }, {
+                await CartModel.updateOne({ userId: new Types.ObjectId(userId), isDelete: 0 }, {
                     isDelete: 1
                 });
             }
@@ -311,20 +253,21 @@ export class OrderRepository implements OrderDomainRepository {
         dateFilter?: string, startDate?: string, endDate?: string, orderCode?: string
     }) {
         try {
-            const { page, limit, type, userId, orderStatus, paymentStatus, dateFilter, startDate, endDate, orderCode } = params;
-            // console.log(orderCode,"orderCode");
+            const { page, limit, userId, orderStatus, paymentStatus, dateFilter, startDate, endDate, orderCode } = params;
+            console.log("LIST ORDER PARAMS:", params);
 
-            const blockedStatuses = ['over-due', 'due-soon'];
-            const placedByModel = type === 'customer' ? 'User' : type ?? '';
+            // Force type to customer/User context
+            const placedByModel = 'User';
             const userObjectId = new Types.ObjectId(userId);
+
             const matchStage: any = {
                 isDelete: false,
-                placedBy: userObjectId,
+                placedBy: { $in: [userId, userObjectId] }, // Match both string and ObjectId
                 placedByModel
             };
 
-            // Add orderCode search for customers only
-            if (orderCode && type === 'customer') {
+            // Add orderCode search
+            if (orderCode) {
                 matchStage.orderCode = { $regex: orderCode, $options: 'i' };
             }
 
@@ -353,12 +296,8 @@ export class OrderRepository implements OrderDomainRepository {
 
             const pipeline: any[] = [{ $match: matchStage }];
 
-            if (paymentStatus && !blockedStatuses.includes(paymentStatus)) {
-                if (paymentStatus === 'order') {
-                    pipeline.push({ $match: { paymentMode: 'CREDIT', paymentStatus: 'pending' } });
-                } else {
-                    pipeline.push({ $match: { paymentStatus } });
-                }
+            if (paymentStatus) {
+                pipeline.push({ $match: { paymentStatus } });
             }
 
             if (orderStatus) {
@@ -376,32 +315,21 @@ export class OrderRepository implements OrderDomainRepository {
 
             const finalResult = await Promise.all(
                 orders.map(async (order) => {
-                    let userName = '', userAddress = '', overDue = false, creditDueDate: any;
-                    let customerTotalTax = 0, wholesalerTotalTax = 0;
+                    let userName = '', userAddress = '';
 
-                    // Fetch user info
-                    const isCustomer = ['customer', 'User', 'pos'].includes(type || '');
-                    const userModel: any = isCustomer ? Users : WholesalerRetailsers;
-                    const user = await userModel.findOne({ _id: order.placedBy, isActive: true, isDelete: false });
+                    // Fetch user info (Only Users model)
+                    const user = await Users.findOne({ _id: order.placedBy, isActive: true, isDelete: false });
 
                     if (user) {
                         userName = user.name ?? '';
                         userAddress = user.address ?? '';
                     }
 
-                    // Check for overdue
-                    if (!isCustomer) {
-                        const credit = await WholeSalerCreditModel.findOne({ wholeSalerId: userId, isActive: true, isDelete: false });
-                        if (credit?.creditPeriod) {
-                            creditDueDate = moment(order.createdAt).add(credit.creditPeriod, 'days');
-                            overDue = moment().isAfter(creditDueDate, 'day');
-                        }
-                    }
-
                     // Resolve items
                     const products = await Promise.all(
                         order.items.map(async (item: any) => {
                             if (item.offerType === 'package') {
+                                // Offer/Package logic preserved
                                 const offer = await OfferModel.findById(item.offerId);
                                 return {
                                     _id: '',
@@ -418,26 +346,36 @@ export class OrderRepository implements OrderDomainRepository {
                                     }]
                                 };
                             } else {
-                                const product = await ProductModel.findOne({ _id: item.productId, isActive: 1, isDelete: 0 });
-                                if (!product) return null;
+                                if (!item.productId) return null;
+                                // REMOVED isActive and isDelete checks to ensure history order products are shown
+                                const product = await ProductModel.findOne({
+                                    _id: new Types.ObjectId(item.productId)
+                                });
+                                console.log(`Searching for product ID: ${item.productId}, Result: ${product ? 'Found' : 'NULL'}`);
+
+
+                                // if (!product) return null;
 
                                 const quantity = Number(item.quantity || 0);
                                 const unitPrice = Number(item.unitPrice || 0);
-                                const taxRate = Number(product.wholesalerTax || 0) / 100;
-                                const taxAmount = taxRate * unitPrice;
+                                // Removed wholesaler tax calculation
 
-                                wholesalerTotalTax += taxAmount * quantity;
+                                let category, subCategory, review;
 
-                                const [category, review] = await Promise.all([
-                                    Category.findById(product.categoryId),
-                                    ReviewModel.findOne({
-                                        orderId: order._id,
-                                        userId: userObjectId,
-                                        productId: product._id,
-                                        isActive: 1,
-                                        isDelete: 0
-                                    })
-                                ]);
+                                if (product) {
+                                    [category, subCategory, review] = await Promise.all([
+                                        Category.findById(product.categoryId),
+                                        Subcategory.findById(product.subCategory),
+                                        ReviewModel.findOne({
+                                            orderId: order._id,
+                                            userId: userObjectId,
+                                            productId: product._id,
+                                            isActive: true,
+                                            isDelete: false
+                                        })
+                                    ]);
+                                    console.log(`Product: ${product._id}, Cat: ${category ? category.name : 'NULL'}, Sub: ${subCategory ? subCategory.name : 'NULL'}`);
+                                }
 
                                 const attrIds = Object.values(item?.attributes || {}).filter(val => typeof val === 'string').map(id => new Types.ObjectId(id));
                                 const attributeData = await Promise.all(
@@ -445,54 +383,41 @@ export class OrderRepository implements OrderDomainRepository {
                                 );
 
                                 const finalProduct: any = {
-                                    ...product.toObject(),
+                                    ...(product ? product.toObject() : {}),
+                                    _id: product ? product._id : item.productId,
                                     quantity,
                                     unitPrice,
                                     productCartId: item._id,
                                     attributeData,
                                     attributes: item.attributes,
                                     categoryName: category?.name ?? '',
+                                    subCategoryName: subCategory?.name ?? '',
                                     productReview: !!review,
-                                    productwholesalerTaxPrice: taxAmount,
                                     offerId: item.offerId ?? '',
                                     offerType: item.offerType ?? ''
                                 };
 
-                                if (type === 'customer') delete finalProduct.wholesalerAttribute;
-                                if (type === 'wholesaler') delete finalProduct.customerAttribute;
+                                // Remove wholesalerAttribute
+                                delete finalProduct.wholesalerAttribute;
 
                                 return finalProduct;
                             }
                         })
                     );
 
-                    const baseTotal = order.totalAmount + (isCustomer ? customerTotalTax : wholesalerTotalTax) + (order.deliveryCharge || 0);
+                    const baseTotal = order.totalAmount + (order.deliveryCharge || 0);
 
                     return {
                         ...order,
                         products: products.filter(Boolean),
-                        customerTotalTax,
-                        wholesalerTotalTax,
                         total: baseTotal,
                         subTotal: order.totalAmount,
                         userName,
                         userAddress,
-                        deliveryCharge: order.deliveryCharge ?? 0,
-                        overDue,
-                        creditDueDate
+                        deliveryCharge: order.deliveryCharge ?? 0
                     };
                 })
             );
-
-            // Final filtering based on overdue/duesoon
-            if (paymentStatus === 'over-due') {
-                return Pagination(total, finalResult.filter(o => o.overDue === true && o.paymentStatus !== 'paid' && o.paymentMode === 'CREDIT'), limit, page);
-            }
-
-            if (paymentStatus === 'due-soon') {
-                const filtered = finalResult.filter(o => o.creditDueDate && moment(o.creditDueDate).diff(moment(), 'days') <= 7 && o.overDue === false && o.paymentStatus !== 'paid' && o.paymentMode === 'CREDIT');
-                return Pagination(total, filtered, limit, page);
-            }
 
             return Pagination(total, finalResult, limit, page);
         } catch (e: any) {

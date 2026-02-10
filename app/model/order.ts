@@ -111,8 +111,8 @@ const creditManageMent = new Schema(
 const orderSchema = new Schema<OrderDocument>(
     {
         orderCode: { type: String, required: true, unique: true },
-        placedBy: { type: Schema.Types.ObjectId, required: true, refPath: 'placedByModel' },
-        placedByModel: { type: String, required: true, enum: ['admins', 'AdminUser', 'Wholesaler', 'User', 'Retailer'] },
+        placedBy: { type: Schema.Types.Mixed, required: true }, // Changed to Mixed to support Guest IDs
+        placedByModel: { type: String, required: true, enum: ['admins', 'AdminUser', 'Wholesaler', 'User', 'Retailer', 'Guest'] }, // Added Guest
         items: { type: [orderItemSchema], default: [] },
         totalAmount: { type: Number, required: true, min: 0 },
         preRoundoffTotal: { type: Number, default: 0 },

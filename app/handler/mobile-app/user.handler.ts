@@ -7,11 +7,15 @@ import { AddPin, CreateUserMobileApp, MobileLoginInput, OtpVerification, createM
 
 import { logUserActivity } from '../../../utils/utilsFunctions/user.activity';
 import { ChangePasswordInput, changePasswordSchema } from "../../../api/Request/user";
+import { ICartRepository } from "../../../domain/website/cart.domain";
+
 export class UserHandler {
   private userService: MobileUserServiceDomain;
+  private cartRepo: ICartRepository;
 
-  constructor(userService: MobileUserServiceDomain) {
+  constructor(userService: MobileUserServiceDomain, cartRepo: ICartRepository) {
     this.userService = userService;
+    this.cartRepo = cartRepo;
   }
 
   createUser = async (req: Request, res: Response): Promise<any> => {
@@ -73,6 +77,12 @@ export class UserHandler {
       }
       // Insert User Activity
       await logUserActivity(result.data.user._id, req, result.data.user.email, 'Logged In');
+
+      // Merge carts if guestUserId is provided
+      if (req.body.guestUserId) {
+        await this.cartRepo.mergeCarts(result.data.user._id, req.body.guestUserId);
+      }
+
       return res.status(StatusCodes.OK).json(result);
     } catch (err: any) {
       return res
@@ -166,6 +176,6 @@ export class UserHandler {
   };
 }
 
-export function UserHandlerFun(service: MobileUserServiceDomain): UserHandler {
-  return new UserHandler(service);
+export function UserHandlerFun(service: MobileUserServiceDomain, cartRepo: ICartRepository): UserHandler {
+  return new UserHandler(service, cartRepo);
 }

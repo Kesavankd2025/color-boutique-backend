@@ -3,9 +3,12 @@ import { z } from "zod";
 export const createWebsiteUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone is required")
-  // userName: z.string().min(1, "User name is required"),
-  // password: z.string().min(6, "Password must be at least 6 characters long"),
+  phone: z.string().min(1, "Phone is required"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+  confirmpassword: z.string().min(6, "Password must be at least 6 characters long"),
+}).refine((data) => data.password === data.confirmpassword, {
+  message: "Passwords don't match",
+  path: ["confirmpassword"],
 });
 export type CreateUserInput = z.infer<typeof createWebsiteUserSchema>;
 
@@ -15,8 +18,9 @@ export type CreateUserInput = z.infer<typeof createWebsiteUserSchema>;
 // });
 
 export const loginWebsiteUserSchema = z.object({
-    phone: z.string().nonempty(),
-    pin: z.string().nonempty(),
+  email: z.string().email("Invalid email address"),
+  password: z.string().nonempty("Password is required"),
+  guestUserId: z.string().optional()
 });
 export type LoginWebsiteInput = z.infer<typeof loginWebsiteUserSchema>;
 

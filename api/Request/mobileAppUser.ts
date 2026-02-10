@@ -7,13 +7,16 @@ export const createMobileUserSchema = z.object({
     guestUserId: z.string().optional(),
     lastName: z.string().optional(),
     pincode: z.string().optional(),
+    password: z.string().optional(), // Added for Website Registration
 });
 
 export type CreateUserMobileApp = z.infer<typeof createMobileUserSchema>;
 
 export const loginUserSchema = z.object({
-    phone: z.string().nonempty(),
-    pin: z.string().nonempty(),
+    phone: z.string().optional(),
+    email: z.string().optional(), // Added for Website Login
+    pin: z.string().optional(),
+    password: z.string().optional(), // Added for Website Login
     guestUserId: z.string().optional(),
     fcmToken: z.string().optional(),
 });

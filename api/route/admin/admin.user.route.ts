@@ -15,7 +15,7 @@ export function RegisterAdminRoute(
   // Password management routes
   router.post("/admin-forgot-password", handler.forgotPassword);
   router.post("/admin-reset-password", handler.resetPassword);
-  router.post("/admin-change-password", middleware, handler.changePassword);
+  // router.post("/admin-change-password", handler.changePassword);
   router.post("/admin-check-mobile", handler.checkMobileNumber);
   router.post("/admin-change-password-by-id", handler.changePasswordByUserId);
 }

@@ -4,15 +4,19 @@ import { Router } from "express";
 // import { AdminUserHandlerFun } from "../../../app/handler/admin.handler/admin.handler";
 
 import { IWebsiteUserRepository } from "../../../domain/website/user.domain";
+import { newCartRepository } from "../../../infrastructure/Repository/mobile-app/cart.repository";
 import { UserHandlerFun } from "../../../app/handler/website.handler/user.handler";
 import { webSiteUserServiceFun } from "../../../app/service/website/user.service";
+import mongoose from "mongoose";
+
 export function RegisterWebSiteUserRoute(
   router: Router,
   adminRepo: IWebsiteUserRepository,
   middleware: any
 ) {
+  const cartRepo = newCartRepository(mongoose.connection);
   const service = webSiteUserServiceFun(adminRepo); // Pass repository to service
-  const handler = UserHandlerFun(service); // Pass service to handler
+  const handler = UserHandlerFun(service, cartRepo); // Pass service and cartRepo to handler
   router.post("/user", handler.createUser); // Define route
   router.post("/login", handler.loginUser); // Define route
   // // Password management routes

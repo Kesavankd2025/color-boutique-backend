@@ -27,21 +27,31 @@ class MobileUserRepository implements IMobileUserRepository {
     data: MobileLoginInput
   ): Promise<ApiResponse<any> | ErrorResponse> {
     try {
-      // Step 1: Check if user exists
-      const adminExist: any = await Users.findOne({
-        phone: data.phone,
-        isActive: 1,
-        isDelete: 0,
-      });
+      // Step 1: Check if user exists by Phone OR Email (for Website)
+      let query: any = { isActive: 1, isDelete: 0 };
+      if (data.phone) query.phone = data.phone;
+      else if (data.email) query.email = data.email;
+      else return createErrorResponse("Phone or Email is required", 400);
+
+      const adminExist: any = await Users.findOne(query);
 
       if (!adminExist) {
         return createErrorResponse("User doesn't exist", 400);
       }
 
-      // Step 2: Verify password
-      const validPin = await bcrypt.compare(data.pin, adminExist?.pin);
-      if (!validPin) {
-        return createErrorResponse("Incorrect pin", 400);
+      // Step 2: Verify password or pin
+      let valid = false;
+      if (data.pin && adminExist.pin) {
+        valid = await bcrypt.compare(data.pin, adminExist.pin);
+      } else if (data.password && adminExist.password) {
+        valid = await bcrypt.compare(data.password, adminExist.password);
+      } else {
+        // If trying to login but no credentials match the stored method
+        return createErrorResponse("Invalid credentials provided", 400);
+      }
+
+      if (!valid) {
+        return createErrorResponse("Incorrect password or pin", 400);
       }
 
       // Step 3: Ensure secret key exists
@@ -54,7 +64,7 @@ class MobileUserRepository implements IMobileUserRepository {
       // Step 4: Generate JWT token
       const token = jwt.sign(
         {
-          id: adminExist._id, phone: adminExist.phone
+          id: adminExist._id, phone: adminExist.phone || adminExist.email
         },
         _config.JwtSecretKey,
         { expiresIn: '7d' }
@@ -251,13 +261,23 @@ class MobileUserRepository implements IMobileUserRepository {
         );
       }
 
+      let passwordHash = undefined;
+      if (data.password) {
+        passwordHash = await bcrypt.hash(data.password, 10);
+      }
+
       const user = await Users.create({
         name: data.name,
         email: data.email,
-        phone: data.phone
+        phone: data.phone,
+        password: passwordHash, // Save hashed password
+        lastName: data.lastName,
+        pincode: data.pincode
       });
       if (user) {
-        await CartModel.updateOne({ guestUserId: data.guestUserId }, { userId: user._id })
+        if (data.guestUserId) {
+          await CartModel.updateOne({ guestUserId: data.guestUserId }, { userId: user._id })
+        }
       }
       return successResponse("User created successfully", StatusCodes.OK, { user });
     } catch (err: any) {

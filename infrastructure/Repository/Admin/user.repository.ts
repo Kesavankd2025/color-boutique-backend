@@ -939,6 +939,10 @@ class UserRepository implements IUserCreateRepository {
         try {
             const { phone, pin, fcmToken } = data;
 
+            if (!pin) {
+                return createErrorResponse("Pin is required", 400);
+            }
+
             // 1. Check if user exists
             const adminExist: any = await AdminUsers.findOne({
                 phoneNumber: phone,
@@ -951,7 +955,7 @@ class UserRepository implements IUserCreateRepository {
             }
 
             // 2. Verify PIN
-            const validPin = await bcrypt.compare(pin, adminExist.password);
+            const validPin = await bcrypt.compare(pin, adminExist.pin);
             if (!validPin) {
                 return createErrorResponse("Incorrect pin", 400);
             }

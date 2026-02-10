@@ -3,7 +3,7 @@ import { _config } from "../../config/config";
 // import { Db } from "mongodb";
 import { RegisterAdminRoute } from "./admin.route";
 import { MobileAppRoute } from "./mobile-app.route";
-// import { WebsiteRoute } from "./website.route";
+import { WebsiteRoute } from "./website.route";
 // import { newWebsiteUserRepository } from "../../infrastructure/Repository/website/user.repository";
 
 export function setupRoutes(app: Application, db: any) {
@@ -24,8 +24,9 @@ export function setupRoutes(app: Application, db: any) {
   apiRouter.use("/mobile-api", mobileRouter);
   MobileAppRoute(mobileRouter, db);
 
-  const websiteRouter = require("express").Router();
-  apiRouter.use("/website", websiteRouter);
+  // Website routes disabled as per request to use mobile-app routes directly
+  // const websiteRouter = require("express").Router();
+  // apiRouter.use("/website", websiteRouter);
   // WebsiteRoute(websiteRouter, db);
 
   // Mount all /api routes

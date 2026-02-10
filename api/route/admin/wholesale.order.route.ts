@@ -11,7 +11,7 @@ export function WholeSaleOrderRoute(
   const service = wholesaleOrderServiceFun(wholeSaleOrderRepo);
   const handler = WholesaleOrderHandlerFun(service);
 
-  router.post("/wholeSaleOrder", middleware, handler.createWholeSaleOrder);
+  // router.post("/wholeSaleOrder", middleware, handler.createWholeSaleOrder);
   router.get("/wholeSaleOrder", middleware, handler.getAllWholeSaleOrder);
   router.get("/order-list", middleware, handler.list);
   router.get("/delivery-list", middleware, handler.deliveryList);

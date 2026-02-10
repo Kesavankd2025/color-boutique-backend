@@ -117,15 +117,21 @@ export class CartRepository implements ICartRepository {
       let sellingPrice = 0;
       let deliveryCharge = 0;
       const seenOffers: any = [];
-      const user: any = type === 'customer' ? (userType === 'guest' ? null : await Users.findOne({ _id: new Types.ObjectId(userId) })) :
-        await WholesalerRetailsers.findOne({ _id: new Types.ObjectId(userId) })
+      let user: any = null;
+      if (userType !== 'guest' && Types.ObjectId.isValid(userId)) {
+        if (type === 'customer') {
+          user = await Users.findOne({ _id: new Types.ObjectId(userId) });
+        } else {
+          user = await WholesalerRetailsers.findOne({ _id: new Types.ObjectId(userId) });
+        }
+      }
 
       const enhancedResult = await Promise.all(
         cartAggregation.map(async (cartItem) => {
           // Create a temporary array to maintain order
           const orderedProducts = [];
           const root = await RootModel.findOne({
-            "pincode.code": type === 'customer' ? user?.pincode : user.address.postalCode
+            "pincode.code": type === 'customer' ? user?.pincode : user?.address?.postalCode
           });
 
           const baseDeliveryCharge = root ? root.deliveryCharge : 0
@@ -512,6 +518,78 @@ export class CartRepository implements ICartRepository {
     } catch (err: any) {
       return createErrorResponse(err.message || "Internal server error", StatusCodes.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  async mergeCarts(userId: string, guestUserId: string): Promise<ApiResponse<any> | ErrorResponse> {
+    try {
+      const userCart = await CartModel.findOne({ userId, isDelete: false, isActive: true });
+      const guestCart: any = await CartModel.findOne({ guestUserId, isDelete: false, isActive: true });
+
+      if (guestCart && userCart) {
+        // Merge guest cart items into user cart
+        for (const guestItem of guestCart.products) {
+          const existingItem = userCart.products.find((p: any) =>
+            p.productId.toString() === guestItem.productId.toString() &&
+            this.areAttributesEqual(p.attributes, guestItem.attributes)
+          );
+
+          if (existingItem) {
+            existingItem.quantity += guestItem.quantity;
+          } else {
+            userCart.products.push(guestItem);
+          }
+        }
+
+        // Recalculate totals for user cart
+        let subtotal = 0;
+        userCart.products.forEach((p: any) => {
+          subtotal += (p.mrpPrice || 0) * (p.quantity || 1);
+        });
+        userCart.subtotal = subtotal;
+        userCart.total = subtotal;
+
+        await userCart.save();
+
+        // Soft delete guest cart
+        guestCart.isDelete = true;
+        await guestCart.save();
+
+        return successResponse("Carts merged successfully", StatusCodes.OK, userCart);
+
+      } else if (guestCart) {
+        // Assign guest cart to user
+        guestCart.userId = userId;
+        guestCart.guestUserId = null;
+        await guestCart.save();
+        return successResponse("Cart assigned to user", StatusCodes.OK, guestCart);
+      }
+
+      return successResponse("No guest cart to merge", StatusCodes.OK, userCart);
+
+    } catch (err: any) {
+      return createErrorResponse(err.message || "Failed to merge carts", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // Helper method for attribute comparison (duplicated from handler, or move to utility)
+  private areAttributesEqual(attr1: any, attr2: any): boolean {
+    if (!attr1 && !attr2) return true;
+    if (!attr1 || !attr2) return false;
+
+    const keys1 = Object.keys(attr1);
+    const keys2 = Object.keys(attr2);
+
+    if (keys1.length !== keys2.length) return false;
+
+    return keys1.every(key => {
+      const val1 = attr1[key];
+      const val2 = attr2[key];
+
+      if (typeof val1 === 'object' && typeof val2 === 'object') {
+        return JSON.stringify(val1) === JSON.stringify(val2);
+      }
+      return val1?.toString() === val2?.toString();
+    });
   }
 
 }

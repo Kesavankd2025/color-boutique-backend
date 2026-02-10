@@ -59,7 +59,7 @@ export function setupRoutes(router: Router, db: any) {
   const offerRepo = new OfferRepository(db)
 
   // admin user routes (login, register)
-  RegisterMobileUserRoute(router, adminRepo, adminmiddleware.ValidateUser);
+  RegisterMobileUserRoute(router, adminRepo, adminmiddleware.ValidateUser, db);
   RegisterCategoryRoute(router, newCategoryRepository(db), adminmiddleware.ValidateUser);
   RegisterNewProductRoute(router, NewProductRepoistory(db), adminmiddleware.ValidateUser);
   RegisterCartRoute(router, newCartRepository(db), adminmiddleware.ValidateUser);

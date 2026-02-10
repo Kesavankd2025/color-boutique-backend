@@ -48,6 +48,11 @@ export class CartService implements CartServiceDomain {
     if (result.status === "error") return result;
     return result;
   }
+  async mergeCarts(userId: string, guestUserId: string): Promise<ApiResponse<any> | ErrorResponse> {
+    const result = await this.adminRepository.mergeCarts(userId, guestUserId);
+    if (result.status === "error") return result;
+    return result;
+  }
 }
 
 export function webSiteCartService(repo: CartServiceDomain): CartServiceDomain {

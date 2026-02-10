@@ -30,7 +30,7 @@ class OrderHandler {
             if (result) {
                 // Insert User Activity
                 if (data.placedByModel === 'User') {
-                    await logUserActivity(new Types.ObjectId(data.placedBy), req, req.user.email, 'Order Placed');
+                    await logUserActivity(new Types.ObjectId(req.user!.id), req, req.user.email, 'Order Placed');
                 }
 
             }
@@ -48,6 +48,11 @@ class OrderHandler {
 
     list = async (req: Request, res: Response): Promise<any> => {
         try {
+            console.log("enterrrrr list");
+            console.log("req.user", req.user);
+            console.log("req.user.id", req.user.id);
+
+
             const userId = req.user.id ?? '';
             const page = parseInt(req.query.page as string) || 0;
             const limit = parseInt(req.query.limit as string) || 0;
@@ -79,6 +84,8 @@ class OrderHandler {
 
     getById = async (req: Request, res: Response): Promise<any> => {
         const { id } = req.params as any;
+        console.log("enterrr 2");
+
         if (!id) {
             sendErrorResponse(
                 res,

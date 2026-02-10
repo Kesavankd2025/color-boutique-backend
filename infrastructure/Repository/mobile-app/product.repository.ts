@@ -666,8 +666,8 @@ class ProductRepository implements ProductDomainRepository {
             const { childCategoryId, limit, categoryId, subCategoryId, sortBy, order, page, type, id, priceFromRange, priceToRange, orderId, userId, orderType,
                 ratingFrom, ratingTo, isTrending
             } = params;
-            console.log(isTrending, "oooooooooooo");
-            console.log(typeof isTrending);
+            console.log(categoryId, "categoryId");
+            console.log(typeof categoryId);
             console.log(params, "ppppppp");
 
 

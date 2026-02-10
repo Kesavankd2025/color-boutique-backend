@@ -12,6 +12,7 @@ const user = new Schema(
     otp: { type: String, required: false, default: "1234" },
     address: { type: String, required: false },
     pincode: { type: String, required: false },
+    password: { type: String, required: false }, // Added for Website Auth
     createdBy: { type: Schema.Types.ObjectId, ref: "AdminUser", required: false },
     modifiedBy: { type: Schema.Types.ObjectId, ref: "AdminUser", required: false },
     lastName: { type: String, required: false }

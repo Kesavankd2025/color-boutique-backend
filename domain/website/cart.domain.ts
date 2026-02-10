@@ -9,6 +9,7 @@ export interface ICartRepository {
   getCartCount(userType: string, userId: string): Promise<ApiResponse<any> | ErrorResponse>;
   getCartDetails(userId: string, userType: string, productId: string): Promise<ApiResponse<any> | ErrorResponse>;
   deleteCart(cart: string, productId: string, offer: boolean): Promise<ApiResponse<any> | ErrorResponse>;
+  mergeCarts(userId: string, guestUserId: string): Promise<ApiResponse<any> | ErrorResponse>;
 
 }
 
@@ -20,6 +21,7 @@ export interface CartServiceDomain {
   getCartCount(userType: string, userId: string): Promise<ApiResponse<any> | ErrorResponse>;
   getCartDetails(userId: string, userType: string, productId: string): Promise<ApiResponse<any> | ErrorResponse>;
   deleteCart(cart: string, productId: string, offer: boolean): Promise<ApiResponse<any> | ErrorResponse>;
+  mergeCarts(userId: string, guestUserId: string): Promise<ApiResponse<any> | ErrorResponse>;
 
   // Define other cart-related service methods if needed
 }
